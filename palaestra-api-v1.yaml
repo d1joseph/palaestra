@@ -1,0 +1,570 @@
+openapi: 3.0.3
+info:
+  title: Palaestra App API
+  description: REST API for the Palaestra fitness application
+  version: 1.0.0
+servers:
+  - url: https://api.palaestra.com/v1
+    description: Production server
+  - url: https://testing.api.palaestra.com/v1
+    description: Testing server
+  - url: http://localhost:8080/v1
+    description: Local development
+
+components:
+  securitySchemes:
+    OAuth2:
+      type: oauth2
+      flows:
+        authorizationCode:
+          authorizationUrl: https://auth.palaestra.com/oauth/authorize
+          tokenUrl: https://auth.palaestra.com/oauth/token
+          scopes:
+            read:user: Read user information
+            write:user: Modify user information
+            read:workouts: Read workout data
+            write:workouts: Create and modify workouts
+            read:plans: Read workout plans
+            write:plans: Create and modify workout plans
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        username:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        profilePicture:
+          type: string
+          format: uri
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    Exercise:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+        muscleGroups:
+          type: array
+          items:
+            type: string
+            enum: [chest, back, shoulders, legs, arms, core, cardio, fullBody]
+        difficulty:
+          type: string
+          enum: [beginner, intermediate, advanced]
+        instructions:
+          type: string
+        mediaUrls:
+          type: array
+          items:
+            type: string
+            format: uri
+
+    WorkoutSet:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        exerciseId:
+          type: string
+          format: uuid
+        reps:
+          type: integer
+        weight:
+          type: number
+        duration:
+          type: integer
+          description: Duration in seconds for timed exercises
+        restTime:
+          type: integer
+          description: Rest time after this set in seconds
+        completed:
+          type: boolean
+          default: false
+
+    Workout:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+        plannedStartTime:
+          type: string
+          format: date-time
+        actualStartTime:
+          type: string
+          format: date-time
+        endTime:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [planned, in_progress, completed, skipped]
+        notes:
+          type: string
+        sets:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkoutSet"
+        totalCaloriesBurned:
+          type: number
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    WorkoutPlan:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        trainerId:
+          type: string
+          format: uuid
+          nullable: true
+        title:
+          type: string
+        description:
+          type: string
+        duration:
+          type: integer
+          description: Duration in days
+        workouts:
+          type: array
+          items:
+            $ref: "#/components/schemas/Workout"
+        isActive:
+          type: boolean
+          default: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    ProgressMetric:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        userId:
+          type: string
+          format: uuid
+        metricType:
+          type: string
+          enum:
+            [
+              weight,
+              bodyFat,
+              muscleMass,
+              chestSize,
+              waistSize,
+              armSize,
+              legSize,
+              custom,
+            ]
+        value:
+          type: number
+        unit:
+          type: string
+        date:
+          type: string
+          format: date-time
+        notes:
+          type: string
+
+paths:
+  /users:
+    post:
+      summary: Create a new user
+      security:
+        - OAuth2: [write:user]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "201":
+          description: User created successfully
+        "400":
+          description: Invalid input
+
+  /users/{userId}:
+    get:
+      summary: Get user by ID
+      security:
+        - OAuth2: [read:user]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/User"
+        "404":
+          description: User not found
+
+    put:
+      summary: Update user
+      security:
+        - OAuth2: [write:user]
+      parameters:
+        - name: userId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/User"
+      responses:
+        "200":
+          description: User updated successfully
+        "400":
+          description: Invalid input
+        "404":
+          description: User not found
+
+  /exercises:
+    get:
+      summary: Get exercises with filtering options
+      security:
+        - OAuth2: [read:workouts]
+      parameters:
+        - name: muscleGroup
+          in: query
+          schema:
+            type: string
+        - name: difficulty
+          in: query
+          schema:
+            type: string
+        - name: query
+          in: query
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Exercise"
+
+    post:
+      summary: Create a new exercise
+      security:
+        - OAuth2: [write:workouts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Exercise"
+      responses:
+        "201":
+          description: Exercise created successfully
+        "400":
+          description: Invalid input
+
+  /exercises/{exerciseId}:
+    get:
+      summary: Get exercise by ID
+      security:
+        - OAuth2: [read:workouts]
+      parameters:
+        - name: exerciseId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Exercise"
+        "404":
+          description: Exercise not found
+
+  /workouts:
+    get:
+      summary: Get workouts for a user
+      security:
+        - OAuth2: [read:workouts]
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Workout"
+
+    post:
+      summary: Create a new workout
+      security:
+        - OAuth2: [write:workouts]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Workout"
+      responses:
+        "201":
+          description: Workout created successfully
+        "400":
+          description: Invalid input
+
+  /workouts/{workoutId}:
+    get:
+      summary: Get workout by ID
+      security:
+        - OAuth2: [read:workouts]
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Workout"
+        "404":
+          description: Workout not found
+
+    put:
+      summary: Update workout
+      security:
+        - OAuth2: [write:workouts]
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Workout"
+      responses:
+        "200":
+          description: Workout updated successfully
+        "400":
+          description: Invalid input
+        "404":
+          description: Workout not found
+
+  /workouts/{workoutId}/start:
+    post:
+      summary: Start a workout
+      security:
+        - OAuth2: [write:workouts]
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Workout started successfully
+        "400":
+          description: Invalid operation
+        "404":
+          description: Workout not found
+
+  /workouts/{workoutId}/complete:
+    post:
+      summary: Complete a workout
+      security:
+        - OAuth2: [write:workouts]
+      parameters:
+        - name: workoutId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "200":
+          description: Workout completed successfully
+        "400":
+          description: Invalid operation
+        "404":
+          description: Workout not found
+
+  /workout-plans:
+    get:
+      summary: Get workout plans for a user
+      security:
+        - OAuth2: [read:plans]
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: isActive
+          in: query
+          schema:
+            type: boolean
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/WorkoutPlan"
+
+    post:
+      summary: Create a new workout plan
+      security:
+        - OAuth2: [write:plans]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkoutPlan"
+      responses:
+        "201":
+          description: Workout plan created successfully
+        "400":
+          description: Invalid input
+
+  /progress:
+    get:
+      summary: Get progress metrics for a user
+      security:
+        - OAuth2: [read:user]
+      parameters:
+        - name: userId
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: metricType
+          in: query
+          schema:
+            type: string
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProgressMetric"
+
+    post:
+      summary: Add a progress metric
+      security:
+        - OAuth2: [write:user]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProgressMetric"
+      responses:
+        "201":
+          description: Progress metric added successfully
+        "400":
+          description: Invalid input
