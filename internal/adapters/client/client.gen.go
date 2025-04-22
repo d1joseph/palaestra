@@ -4,8 +4,17 @@
 package client
 
 import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"strings"
 	"time"
 
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -195,3 +204,2194 @@ type PostWorkoutsJSONRequestBody = Workout
 
 // PutWorkoutsWorkoutIdJSONRequestBody defines body for PutWorkoutsWorkoutId for application/json ContentType.
 type PutWorkoutsWorkoutIdJSONRequestBody = Workout
+
+// RequestEditorFn  is the function signature for the RequestEditor callback function
+type RequestEditorFn func(ctx context.Context, req *http.Request) error
+
+// Doer performs HTTP requests.
+//
+// The standard http.Client implements this interface.
+type HttpRequestDoer interface {
+	Do(req *http.Request) (*http.Response, error)
+}
+
+// Client which conforms to the OpenAPI3 specification for this service.
+type Client struct {
+	// The endpoint of the server conforming to this interface, with scheme,
+	// https://api.deepmap.com for example. This can contain a path relative
+	// to the server, such as https://api.deepmap.com/dev-test, and all the
+	// paths in the swagger spec will be appended to the server.
+	Server string
+
+	// Doer for performing requests, typically a *http.Client with any
+	// customized settings, such as certificate chains.
+	Client HttpRequestDoer
+
+	// A list of callbacks for modifying requests which are generated before sending over
+	// the network.
+	RequestEditors []RequestEditorFn
+}
+
+// ClientOption allows setting custom parameters during construction
+type ClientOption func(*Client) error
+
+// Creates a new Client, with reasonable defaults
+func NewClient(server string, opts ...ClientOption) (*Client, error) {
+	// create a client with sane default values
+	client := Client{
+		Server: server,
+	}
+	// mutate client and add all optional params
+	for _, o := range opts {
+		if err := o(&client); err != nil {
+			return nil, err
+		}
+	}
+	// ensure the server URL always has a trailing slash
+	if !strings.HasSuffix(client.Server, "/") {
+		client.Server += "/"
+	}
+	// create httpClient, if not already present
+	if client.Client == nil {
+		client.Client = &http.Client{}
+	}
+	return &client, nil
+}
+
+// WithHTTPClient allows overriding the default Doer, which is
+// automatically created using http.Client. This is useful for tests.
+func WithHTTPClient(doer HttpRequestDoer) ClientOption {
+	return func(c *Client) error {
+		c.Client = doer
+		return nil
+	}
+}
+
+// WithRequestEditorFn allows setting up a callback function, which will be
+// called right before sending the request. This can be used to mutate the request.
+func WithRequestEditorFn(fn RequestEditorFn) ClientOption {
+	return func(c *Client) error {
+		c.RequestEditors = append(c.RequestEditors, fn)
+		return nil
+	}
+}
+
+// The interface specification for the client above.
+type ClientInterface interface {
+	// GetExercises request
+	GetExercises(ctx context.Context, params *GetExercisesParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostExercisesWithBody request with any body
+	PostExercisesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostExercises(ctx context.Context, body PostExercisesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetExercisesExerciseId request
+	GetExercisesExerciseId(ctx context.Context, exerciseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetProgress request
+	GetProgress(ctx context.Context, params *GetProgressParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostProgressWithBody request with any body
+	PostProgressWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostProgress(ctx context.Context, body PostProgressJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostUsersWithBody request with any body
+	PostUsersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostUsers(ctx context.Context, body PostUsersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetUsersUserId request
+	GetUsersUserId(ctx context.Context, userId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutUsersUserIdWithBody request with any body
+	PutUsersUserIdWithBody(ctx context.Context, userId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutUsersUserId(ctx context.Context, userId openapi_types.UUID, body PutUsersUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkoutPlans request
+	GetWorkoutPlans(ctx context.Context, params *GetWorkoutPlansParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostWorkoutPlansWithBody request with any body
+	PostWorkoutPlansWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostWorkoutPlans(ctx context.Context, body PostWorkoutPlansJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkouts request
+	GetWorkouts(ctx context.Context, params *GetWorkoutsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostWorkoutsWithBody request with any body
+	PostWorkoutsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PostWorkouts(ctx context.Context, body PostWorkoutsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// GetWorkoutsWorkoutId request
+	GetWorkoutsWorkoutId(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PutWorkoutsWorkoutIdWithBody request with any body
+	PutWorkoutsWorkoutIdWithBody(ctx context.Context, workoutId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	PutWorkoutsWorkoutId(ctx context.Context, workoutId openapi_types.UUID, body PutWorkoutsWorkoutIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostWorkoutsWorkoutIdComplete request
+	PostWorkoutsWorkoutIdComplete(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// PostWorkoutsWorkoutIdStart request
+	PostWorkoutsWorkoutIdStart(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error)
+}
+
+func (c *Client) GetExercises(ctx context.Context, params *GetExercisesParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetExercisesRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostExercisesWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostExercisesRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostExercises(ctx context.Context, body PostExercisesJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostExercisesRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetExercisesExerciseId(ctx context.Context, exerciseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetExercisesExerciseIdRequest(c.Server, exerciseId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetProgress(ctx context.Context, params *GetProgressParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetProgressRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostProgressWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostProgressRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostProgress(ctx context.Context, body PostProgressJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostProgressRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostUsersWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostUsersRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostUsers(ctx context.Context, body PostUsersJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostUsersRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetUsersUserId(ctx context.Context, userId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetUsersUserIdRequest(c.Server, userId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutUsersUserIdWithBody(ctx context.Context, userId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutUsersUserIdRequestWithBody(c.Server, userId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutUsersUserId(ctx context.Context, userId openapi_types.UUID, body PutUsersUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutUsersUserIdRequest(c.Server, userId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkoutPlans(ctx context.Context, params *GetWorkoutPlansParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkoutPlansRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostWorkoutPlansWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostWorkoutPlansRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostWorkoutPlans(ctx context.Context, body PostWorkoutPlansJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostWorkoutPlansRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkouts(ctx context.Context, params *GetWorkoutsParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkoutsRequest(c.Server, params)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostWorkoutsWithBody(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostWorkoutsRequestWithBody(c.Server, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostWorkouts(ctx context.Context, body PostWorkoutsJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostWorkoutsRequest(c.Server, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) GetWorkoutsWorkoutId(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewGetWorkoutsWorkoutIdRequest(c.Server, workoutId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutWorkoutsWorkoutIdWithBody(ctx context.Context, workoutId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutWorkoutsWorkoutIdRequestWithBody(c.Server, workoutId, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PutWorkoutsWorkoutId(ctx context.Context, workoutId openapi_types.UUID, body PutWorkoutsWorkoutIdJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPutWorkoutsWorkoutIdRequest(c.Server, workoutId, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostWorkoutsWorkoutIdComplete(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostWorkoutsWorkoutIdCompleteRequest(c.Server, workoutId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) PostWorkoutsWorkoutIdStart(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewPostWorkoutsWorkoutIdStartRequest(c.Server, workoutId)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+// NewGetExercisesRequest generates requests for GetExercises
+func NewGetExercisesRequest(server string, params *GetExercisesParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/exercises")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.MuscleGroup != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "muscleGroup", runtime.ParamLocationQuery, *params.MuscleGroup); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Difficulty != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "difficulty", runtime.ParamLocationQuery, *params.Difficulty); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Query != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "query", runtime.ParamLocationQuery, *params.Query); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostExercisesRequest calls the generic PostExercises builder with application/json body
+func NewPostExercisesRequest(server string, body PostExercisesJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostExercisesRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostExercisesRequestWithBody generates requests for PostExercises with any type of body
+func NewPostExercisesRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/exercises")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetExercisesExerciseIdRequest generates requests for GetExercisesExerciseId
+func NewGetExercisesExerciseIdRequest(server string, exerciseId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "exerciseId", runtime.ParamLocationPath, exerciseId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/exercises/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewGetProgressRequest generates requests for GetProgress
+func NewGetProgressRequest(server string, params *GetProgressParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/progress")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.MetricType != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "metricType", runtime.ParamLocationQuery, *params.MetricType); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.StartDate != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startDate", runtime.ParamLocationQuery, *params.StartDate); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndDate != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endDate", runtime.ParamLocationQuery, *params.EndDate); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostProgressRequest calls the generic PostProgress builder with application/json body
+func NewPostProgressRequest(server string, body PostProgressJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostProgressRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostProgressRequestWithBody generates requests for PostProgress with any type of body
+func NewPostProgressRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/progress")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostUsersRequest calls the generic PostUsers builder with application/json body
+func NewPostUsersRequest(server string, body PostUsersJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostUsersRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostUsersRequestWithBody generates requests for PostUsers with any type of body
+func NewPostUsersRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetUsersUserIdRequest generates requests for GetUsersUserId
+func NewGetUsersUserIdRequest(server string, userId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutUsersUserIdRequest calls the generic PutUsersUserId builder with application/json body
+func NewPutUsersUserIdRequest(server string, userId openapi_types.UUID, body PutUsersUserIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutUsersUserIdRequestWithBody(server, userId, "application/json", bodyReader)
+}
+
+// NewPutUsersUserIdRequestWithBody generates requests for PutUsersUserId with any type of body
+func NewPutUsersUserIdRequestWithBody(server string, userId openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "userId", runtime.ParamLocationPath, userId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/users/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWorkoutPlansRequest generates requests for GetWorkoutPlans
+func NewGetWorkoutPlansRequest(server string, params *GetWorkoutPlansParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workout-plans")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.IsActive != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "isActive", runtime.ParamLocationQuery, *params.IsActive); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostWorkoutPlansRequest calls the generic PostWorkoutPlans builder with application/json body
+func NewPostWorkoutPlansRequest(server string, body PostWorkoutPlansJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostWorkoutPlansRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostWorkoutPlansRequestWithBody generates requests for PostWorkoutPlans with any type of body
+func NewPostWorkoutPlansRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workout-plans")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWorkoutsRequest generates requests for GetWorkouts
+func NewGetWorkoutsRequest(server string, params *GetWorkoutsParams) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workouts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		queryValues := queryURL.Query()
+
+		if params.UserId != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "userId", runtime.ParamLocationQuery, *params.UserId); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.Status != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "status", runtime.ParamLocationQuery, *params.Status); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.StartDate != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "startDate", runtime.ParamLocationQuery, *params.StartDate); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		if params.EndDate != nil {
+
+			if queryFrag, err := runtime.StyleParamWithLocation("form", true, "endDate", runtime.ParamLocationQuery, *params.EndDate); err != nil {
+				return nil, err
+			} else if parsed, err := url.ParseQuery(queryFrag); err != nil {
+				return nil, err
+			} else {
+				for k, v := range parsed {
+					for _, v2 := range v {
+						queryValues.Add(k, v2)
+					}
+				}
+			}
+
+		}
+
+		queryURL.RawQuery = queryValues.Encode()
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostWorkoutsRequest calls the generic PostWorkouts builder with application/json body
+func NewPostWorkoutsRequest(server string, body PostWorkoutsJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPostWorkoutsRequestWithBody(server, "application/json", bodyReader)
+}
+
+// NewPostWorkoutsRequestWithBody generates requests for PostWorkouts with any type of body
+func NewPostWorkoutsRequestWithBody(server string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workouts")
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewGetWorkoutsWorkoutIdRequest generates requests for GetWorkoutsWorkoutId
+func NewGetWorkoutsWorkoutIdRequest(server string, workoutId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workoutId", runtime.ParamLocationPath, workoutId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workouts/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("GET", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPutWorkoutsWorkoutIdRequest calls the generic PutWorkoutsWorkoutId builder with application/json body
+func NewPutWorkoutsWorkoutIdRequest(server string, workoutId openapi_types.UUID, body PutWorkoutsWorkoutIdJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewPutWorkoutsWorkoutIdRequestWithBody(server, workoutId, "application/json", bodyReader)
+}
+
+// NewPutWorkoutsWorkoutIdRequestWithBody generates requests for PutWorkoutsWorkoutId with any type of body
+func NewPutWorkoutsWorkoutIdRequestWithBody(server string, workoutId openapi_types.UUID, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workoutId", runtime.ParamLocationPath, workoutId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workouts/%s", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("PUT", queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewPostWorkoutsWorkoutIdCompleteRequest generates requests for PostWorkoutsWorkoutIdComplete
+func NewPostWorkoutsWorkoutIdCompleteRequest(server string, workoutId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workoutId", runtime.ParamLocationPath, workoutId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workouts/%s/complete", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+// NewPostWorkoutsWorkoutIdStartRequest generates requests for PostWorkoutsWorkoutIdStart
+func NewPostWorkoutsWorkoutIdStartRequest(server string, workoutId openapi_types.UUID) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithLocation("simple", false, "workoutId", runtime.ParamLocationPath, workoutId)
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/workouts/%s/start", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest("POST", queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
+func (c *Client) applyEditors(ctx context.Context, req *http.Request, additionalEditors []RequestEditorFn) error {
+	for _, r := range c.RequestEditors {
+		if err := r(ctx, req); err != nil {
+			return err
+		}
+	}
+	for _, r := range additionalEditors {
+		if err := r(ctx, req); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// ClientWithResponses builds on ClientInterface to offer response payloads
+type ClientWithResponses struct {
+	ClientInterface
+}
+
+// NewClientWithResponses creates a new ClientWithResponses, which wraps
+// Client with return type handling
+func NewClientWithResponses(server string, opts ...ClientOption) (*ClientWithResponses, error) {
+	client, err := NewClient(server, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return &ClientWithResponses{client}, nil
+}
+
+// WithBaseURL overrides the baseURL.
+func WithBaseURL(baseURL string) ClientOption {
+	return func(c *Client) error {
+		newBaseURL, err := url.Parse(baseURL)
+		if err != nil {
+			return err
+		}
+		c.Server = newBaseURL.String()
+		return nil
+	}
+}
+
+// ClientWithResponsesInterface is the interface specification for the client with responses above.
+type ClientWithResponsesInterface interface {
+	// GetExercisesWithResponse request
+	GetExercisesWithResponse(ctx context.Context, params *GetExercisesParams, reqEditors ...RequestEditorFn) (*GetExercisesResponse, error)
+
+	// PostExercisesWithBodyWithResponse request with any body
+	PostExercisesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostExercisesResponse, error)
+
+	PostExercisesWithResponse(ctx context.Context, body PostExercisesJSONRequestBody, reqEditors ...RequestEditorFn) (*PostExercisesResponse, error)
+
+	// GetExercisesExerciseIdWithResponse request
+	GetExercisesExerciseIdWithResponse(ctx context.Context, exerciseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetExercisesExerciseIdResponse, error)
+
+	// GetProgressWithResponse request
+	GetProgressWithResponse(ctx context.Context, params *GetProgressParams, reqEditors ...RequestEditorFn) (*GetProgressResponse, error)
+
+	// PostProgressWithBodyWithResponse request with any body
+	PostProgressWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostProgressResponse, error)
+
+	PostProgressWithResponse(ctx context.Context, body PostProgressJSONRequestBody, reqEditors ...RequestEditorFn) (*PostProgressResponse, error)
+
+	// PostUsersWithBodyWithResponse request with any body
+	PostUsersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostUsersResponse, error)
+
+	PostUsersWithResponse(ctx context.Context, body PostUsersJSONRequestBody, reqEditors ...RequestEditorFn) (*PostUsersResponse, error)
+
+	// GetUsersUserIdWithResponse request
+	GetUsersUserIdWithResponse(ctx context.Context, userId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetUsersUserIdResponse, error)
+
+	// PutUsersUserIdWithBodyWithResponse request with any body
+	PutUsersUserIdWithBodyWithResponse(ctx context.Context, userId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutUsersUserIdResponse, error)
+
+	PutUsersUserIdWithResponse(ctx context.Context, userId openapi_types.UUID, body PutUsersUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutUsersUserIdResponse, error)
+
+	// GetWorkoutPlansWithResponse request
+	GetWorkoutPlansWithResponse(ctx context.Context, params *GetWorkoutPlansParams, reqEditors ...RequestEditorFn) (*GetWorkoutPlansResponse, error)
+
+	// PostWorkoutPlansWithBodyWithResponse request with any body
+	PostWorkoutPlansWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostWorkoutPlansResponse, error)
+
+	PostWorkoutPlansWithResponse(ctx context.Context, body PostWorkoutPlansJSONRequestBody, reqEditors ...RequestEditorFn) (*PostWorkoutPlansResponse, error)
+
+	// GetWorkoutsWithResponse request
+	GetWorkoutsWithResponse(ctx context.Context, params *GetWorkoutsParams, reqEditors ...RequestEditorFn) (*GetWorkoutsResponse, error)
+
+	// PostWorkoutsWithBodyWithResponse request with any body
+	PostWorkoutsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostWorkoutsResponse, error)
+
+	PostWorkoutsWithResponse(ctx context.Context, body PostWorkoutsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostWorkoutsResponse, error)
+
+	// GetWorkoutsWorkoutIdWithResponse request
+	GetWorkoutsWorkoutIdWithResponse(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetWorkoutsWorkoutIdResponse, error)
+
+	// PutWorkoutsWorkoutIdWithBodyWithResponse request with any body
+	PutWorkoutsWorkoutIdWithBodyWithResponse(ctx context.Context, workoutId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutWorkoutsWorkoutIdResponse, error)
+
+	PutWorkoutsWorkoutIdWithResponse(ctx context.Context, workoutId openapi_types.UUID, body PutWorkoutsWorkoutIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutWorkoutsWorkoutIdResponse, error)
+
+	// PostWorkoutsWorkoutIdCompleteWithResponse request
+	PostWorkoutsWorkoutIdCompleteWithResponse(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostWorkoutsWorkoutIdCompleteResponse, error)
+
+	// PostWorkoutsWorkoutIdStartWithResponse request
+	PostWorkoutsWorkoutIdStartWithResponse(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostWorkoutsWorkoutIdStartResponse, error)
+}
+
+type GetExercisesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Exercise
+}
+
+// Status returns HTTPResponse.Status
+func (r GetExercisesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetExercisesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostExercisesResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostExercisesResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostExercisesResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetExercisesExerciseIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Exercise
+}
+
+// Status returns HTTPResponse.Status
+func (r GetExercisesExerciseIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetExercisesExerciseIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetProgressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]ProgressMetric
+}
+
+// Status returns HTTPResponse.Status
+func (r GetProgressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetProgressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostProgressResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostProgressResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostProgressResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostUsersResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostUsersResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostUsersResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetUsersUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *User
+}
+
+// Status returns HTTPResponse.Status
+func (r GetUsersUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetUsersUserIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutUsersUserIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PutUsersUserIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutUsersUserIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkoutPlansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]WorkoutPlan
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkoutPlansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkoutPlansResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostWorkoutPlansResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostWorkoutPlansResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostWorkoutPlansResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkoutsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *[]Workout
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkoutsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkoutsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostWorkoutsResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostWorkoutsResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostWorkoutsResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type GetWorkoutsWorkoutIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *Workout
+}
+
+// Status returns HTTPResponse.Status
+func (r GetWorkoutsWorkoutIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r GetWorkoutsWorkoutIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PutWorkoutsWorkoutIdResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PutWorkoutsWorkoutIdResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PutWorkoutsWorkoutIdResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostWorkoutsWorkoutIdCompleteResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostWorkoutsWorkoutIdCompleteResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostWorkoutsWorkoutIdCompleteResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+type PostWorkoutsWorkoutIdStartResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+}
+
+// Status returns HTTPResponse.Status
+func (r PostWorkoutsWorkoutIdStartResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r PostWorkoutsWorkoutIdStartResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// GetExercisesWithResponse request returning *GetExercisesResponse
+func (c *ClientWithResponses) GetExercisesWithResponse(ctx context.Context, params *GetExercisesParams, reqEditors ...RequestEditorFn) (*GetExercisesResponse, error) {
+	rsp, err := c.GetExercises(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetExercisesResponse(rsp)
+}
+
+// PostExercisesWithBodyWithResponse request with arbitrary body returning *PostExercisesResponse
+func (c *ClientWithResponses) PostExercisesWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostExercisesResponse, error) {
+	rsp, err := c.PostExercisesWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostExercisesResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostExercisesWithResponse(ctx context.Context, body PostExercisesJSONRequestBody, reqEditors ...RequestEditorFn) (*PostExercisesResponse, error) {
+	rsp, err := c.PostExercises(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostExercisesResponse(rsp)
+}
+
+// GetExercisesExerciseIdWithResponse request returning *GetExercisesExerciseIdResponse
+func (c *ClientWithResponses) GetExercisesExerciseIdWithResponse(ctx context.Context, exerciseId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetExercisesExerciseIdResponse, error) {
+	rsp, err := c.GetExercisesExerciseId(ctx, exerciseId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetExercisesExerciseIdResponse(rsp)
+}
+
+// GetProgressWithResponse request returning *GetProgressResponse
+func (c *ClientWithResponses) GetProgressWithResponse(ctx context.Context, params *GetProgressParams, reqEditors ...RequestEditorFn) (*GetProgressResponse, error) {
+	rsp, err := c.GetProgress(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetProgressResponse(rsp)
+}
+
+// PostProgressWithBodyWithResponse request with arbitrary body returning *PostProgressResponse
+func (c *ClientWithResponses) PostProgressWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostProgressResponse, error) {
+	rsp, err := c.PostProgressWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostProgressResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostProgressWithResponse(ctx context.Context, body PostProgressJSONRequestBody, reqEditors ...RequestEditorFn) (*PostProgressResponse, error) {
+	rsp, err := c.PostProgress(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostProgressResponse(rsp)
+}
+
+// PostUsersWithBodyWithResponse request with arbitrary body returning *PostUsersResponse
+func (c *ClientWithResponses) PostUsersWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostUsersResponse, error) {
+	rsp, err := c.PostUsersWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostUsersResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostUsersWithResponse(ctx context.Context, body PostUsersJSONRequestBody, reqEditors ...RequestEditorFn) (*PostUsersResponse, error) {
+	rsp, err := c.PostUsers(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostUsersResponse(rsp)
+}
+
+// GetUsersUserIdWithResponse request returning *GetUsersUserIdResponse
+func (c *ClientWithResponses) GetUsersUserIdWithResponse(ctx context.Context, userId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetUsersUserIdResponse, error) {
+	rsp, err := c.GetUsersUserId(ctx, userId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetUsersUserIdResponse(rsp)
+}
+
+// PutUsersUserIdWithBodyWithResponse request with arbitrary body returning *PutUsersUserIdResponse
+func (c *ClientWithResponses) PutUsersUserIdWithBodyWithResponse(ctx context.Context, userId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutUsersUserIdResponse, error) {
+	rsp, err := c.PutUsersUserIdWithBody(ctx, userId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutUsersUserIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutUsersUserIdWithResponse(ctx context.Context, userId openapi_types.UUID, body PutUsersUserIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutUsersUserIdResponse, error) {
+	rsp, err := c.PutUsersUserId(ctx, userId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutUsersUserIdResponse(rsp)
+}
+
+// GetWorkoutPlansWithResponse request returning *GetWorkoutPlansResponse
+func (c *ClientWithResponses) GetWorkoutPlansWithResponse(ctx context.Context, params *GetWorkoutPlansParams, reqEditors ...RequestEditorFn) (*GetWorkoutPlansResponse, error) {
+	rsp, err := c.GetWorkoutPlans(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkoutPlansResponse(rsp)
+}
+
+// PostWorkoutPlansWithBodyWithResponse request with arbitrary body returning *PostWorkoutPlansResponse
+func (c *ClientWithResponses) PostWorkoutPlansWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostWorkoutPlansResponse, error) {
+	rsp, err := c.PostWorkoutPlansWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostWorkoutPlansResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostWorkoutPlansWithResponse(ctx context.Context, body PostWorkoutPlansJSONRequestBody, reqEditors ...RequestEditorFn) (*PostWorkoutPlansResponse, error) {
+	rsp, err := c.PostWorkoutPlans(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostWorkoutPlansResponse(rsp)
+}
+
+// GetWorkoutsWithResponse request returning *GetWorkoutsResponse
+func (c *ClientWithResponses) GetWorkoutsWithResponse(ctx context.Context, params *GetWorkoutsParams, reqEditors ...RequestEditorFn) (*GetWorkoutsResponse, error) {
+	rsp, err := c.GetWorkouts(ctx, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkoutsResponse(rsp)
+}
+
+// PostWorkoutsWithBodyWithResponse request with arbitrary body returning *PostWorkoutsResponse
+func (c *ClientWithResponses) PostWorkoutsWithBodyWithResponse(ctx context.Context, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PostWorkoutsResponse, error) {
+	rsp, err := c.PostWorkoutsWithBody(ctx, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostWorkoutsResponse(rsp)
+}
+
+func (c *ClientWithResponses) PostWorkoutsWithResponse(ctx context.Context, body PostWorkoutsJSONRequestBody, reqEditors ...RequestEditorFn) (*PostWorkoutsResponse, error) {
+	rsp, err := c.PostWorkouts(ctx, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostWorkoutsResponse(rsp)
+}
+
+// GetWorkoutsWorkoutIdWithResponse request returning *GetWorkoutsWorkoutIdResponse
+func (c *ClientWithResponses) GetWorkoutsWorkoutIdWithResponse(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*GetWorkoutsWorkoutIdResponse, error) {
+	rsp, err := c.GetWorkoutsWorkoutId(ctx, workoutId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseGetWorkoutsWorkoutIdResponse(rsp)
+}
+
+// PutWorkoutsWorkoutIdWithBodyWithResponse request with arbitrary body returning *PutWorkoutsWorkoutIdResponse
+func (c *ClientWithResponses) PutWorkoutsWorkoutIdWithBodyWithResponse(ctx context.Context, workoutId openapi_types.UUID, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*PutWorkoutsWorkoutIdResponse, error) {
+	rsp, err := c.PutWorkoutsWorkoutIdWithBody(ctx, workoutId, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutWorkoutsWorkoutIdResponse(rsp)
+}
+
+func (c *ClientWithResponses) PutWorkoutsWorkoutIdWithResponse(ctx context.Context, workoutId openapi_types.UUID, body PutWorkoutsWorkoutIdJSONRequestBody, reqEditors ...RequestEditorFn) (*PutWorkoutsWorkoutIdResponse, error) {
+	rsp, err := c.PutWorkoutsWorkoutId(ctx, workoutId, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePutWorkoutsWorkoutIdResponse(rsp)
+}
+
+// PostWorkoutsWorkoutIdCompleteWithResponse request returning *PostWorkoutsWorkoutIdCompleteResponse
+func (c *ClientWithResponses) PostWorkoutsWorkoutIdCompleteWithResponse(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostWorkoutsWorkoutIdCompleteResponse, error) {
+	rsp, err := c.PostWorkoutsWorkoutIdComplete(ctx, workoutId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostWorkoutsWorkoutIdCompleteResponse(rsp)
+}
+
+// PostWorkoutsWorkoutIdStartWithResponse request returning *PostWorkoutsWorkoutIdStartResponse
+func (c *ClientWithResponses) PostWorkoutsWorkoutIdStartWithResponse(ctx context.Context, workoutId openapi_types.UUID, reqEditors ...RequestEditorFn) (*PostWorkoutsWorkoutIdStartResponse, error) {
+	rsp, err := c.PostWorkoutsWorkoutIdStart(ctx, workoutId, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParsePostWorkoutsWorkoutIdStartResponse(rsp)
+}
+
+// ParseGetExercisesResponse parses an HTTP response from a GetExercisesWithResponse call
+func ParseGetExercisesResponse(rsp *http.Response) (*GetExercisesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetExercisesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Exercise
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostExercisesResponse parses an HTTP response from a PostExercisesWithResponse call
+func ParsePostExercisesResponse(rsp *http.Response) (*PostExercisesResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostExercisesResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetExercisesExerciseIdResponse parses an HTTP response from a GetExercisesExerciseIdWithResponse call
+func ParseGetExercisesExerciseIdResponse(rsp *http.Response) (*GetExercisesExerciseIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetExercisesExerciseIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Exercise
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseGetProgressResponse parses an HTTP response from a GetProgressWithResponse call
+func ParseGetProgressResponse(rsp *http.Response) (*GetProgressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetProgressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []ProgressMetric
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostProgressResponse parses an HTTP response from a PostProgressWithResponse call
+func ParsePostProgressResponse(rsp *http.Response) (*PostProgressResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostProgressResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostUsersResponse parses an HTTP response from a PostUsersWithResponse call
+func ParsePostUsersResponse(rsp *http.Response) (*PostUsersResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostUsersResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetUsersUserIdResponse parses an HTTP response from a GetUsersUserIdWithResponse call
+func ParseGetUsersUserIdResponse(rsp *http.Response) (*GetUsersUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetUsersUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest User
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutUsersUserIdResponse parses an HTTP response from a PutUsersUserIdWithResponse call
+func ParsePutUsersUserIdResponse(rsp *http.Response) (*PutUsersUserIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutUsersUserIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkoutPlansResponse parses an HTTP response from a GetWorkoutPlansWithResponse call
+func ParseGetWorkoutPlansResponse(rsp *http.Response) (*GetWorkoutPlansResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkoutPlansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []WorkoutPlan
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostWorkoutPlansResponse parses an HTTP response from a PostWorkoutPlansWithResponse call
+func ParsePostWorkoutPlansResponse(rsp *http.Response) (*PostWorkoutPlansResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostWorkoutPlansResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkoutsResponse parses an HTTP response from a GetWorkoutsWithResponse call
+func ParseGetWorkoutsResponse(rsp *http.Response) (*GetWorkoutsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkoutsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest []Workout
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePostWorkoutsResponse parses an HTTP response from a PostWorkoutsWithResponse call
+func ParsePostWorkoutsResponse(rsp *http.Response) (*PostWorkoutsResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostWorkoutsResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParseGetWorkoutsWorkoutIdResponse parses an HTTP response from a GetWorkoutsWorkoutIdWithResponse call
+func ParseGetWorkoutsWorkoutIdResponse(rsp *http.Response) (*GetWorkoutsWorkoutIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &GetWorkoutsWorkoutIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest Workout
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParsePutWorkoutsWorkoutIdResponse parses an HTTP response from a PutWorkoutsWorkoutIdWithResponse call
+func ParsePutWorkoutsWorkoutIdResponse(rsp *http.Response) (*PutWorkoutsWorkoutIdResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PutWorkoutsWorkoutIdResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostWorkoutsWorkoutIdCompleteResponse parses an HTTP response from a PostWorkoutsWorkoutIdCompleteWithResponse call
+func ParsePostWorkoutsWorkoutIdCompleteResponse(rsp *http.Response) (*PostWorkoutsWorkoutIdCompleteResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostWorkoutsWorkoutIdCompleteResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}
+
+// ParsePostWorkoutsWorkoutIdStartResponse parses an HTTP response from a PostWorkoutsWorkoutIdStartWithResponse call
+func ParsePostWorkoutsWorkoutIdStartResponse(rsp *http.Response) (*PostWorkoutsWorkoutIdStartResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &PostWorkoutsWorkoutIdStartResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	return response, nil
+}

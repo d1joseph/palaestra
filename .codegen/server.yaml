@@ -3,4 +3,5 @@ generate:
   fiber-server: true
   embedded-spec: true
   strict-server: true
+  models: true
 output: internal/adapters/api/server.gen.go

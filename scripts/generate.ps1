@@ -7,9 +7,9 @@ Write-Host "Generating API models..."
 oapi-codegen --config=.codegen/models.yaml ./palaestra-api-v1.yaml
 
 Write-Host "Generating API server..."
-oapi-codegen -generate "types" --config=.codegen/server.yaml ./palaestra-api-v1.yaml
+oapi-codegen --config=.codegen/server.yaml ./palaestra-api-v1.yaml
 
 Write-Host "Generating API client..."
-oapi-codegen -generate "types" --config=.codegen/client.yaml ./palaestra-api-v1.yaml
+oapi-codegen --config=.codegen/client.yaml ./palaestra-api-v1.yaml
 
 Write-Host "Generation complete!"

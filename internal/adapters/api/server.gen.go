@@ -4,8 +4,19 @@
 package api
 
 import (
+	"bytes"
+	"compress/gzip"
+	"context"
+	"encoding/base64"
+	"fmt"
+	"net/url"
+	"path"
+	"strings"
 	"time"
 
+	"github.com/getkin/kin-openapi/openapi3"
+	"github.com/gofiber/fiber/v2"
+	"github.com/oapi-codegen/runtime"
 	openapi_types "github.com/oapi-codegen/runtime/types"
 )
 
@@ -195,3 +206,1478 @@ type PostWorkoutsJSONRequestBody = Workout
 
 // PutWorkoutsWorkoutIdJSONRequestBody defines body for PutWorkoutsWorkoutId for application/json ContentType.
 type PutWorkoutsWorkoutIdJSONRequestBody = Workout
+
+// ServerInterface represents all server handlers.
+type ServerInterface interface {
+	// Get exercises with filtering options
+	// (GET /exercises)
+	GetExercises(c *fiber.Ctx, params GetExercisesParams) error
+	// Create a new exercise
+	// (POST /exercises)
+	PostExercises(c *fiber.Ctx) error
+	// Get exercise by ID
+	// (GET /exercises/{exerciseId})
+	GetExercisesExerciseId(c *fiber.Ctx, exerciseId openapi_types.UUID) error
+	// Get progress metrics for a user
+	// (GET /progress)
+	GetProgress(c *fiber.Ctx, params GetProgressParams) error
+	// Add a progress metric
+	// (POST /progress)
+	PostProgress(c *fiber.Ctx) error
+	// Create a new user
+	// (POST /users)
+	PostUsers(c *fiber.Ctx) error
+	// Get user by ID
+	// (GET /users/{userId})
+	GetUsersUserId(c *fiber.Ctx, userId openapi_types.UUID) error
+	// Update user
+	// (PUT /users/{userId})
+	PutUsersUserId(c *fiber.Ctx, userId openapi_types.UUID) error
+	// Get workout plans for a user
+	// (GET /workout-plans)
+	GetWorkoutPlans(c *fiber.Ctx, params GetWorkoutPlansParams) error
+	// Create a new workout plan
+	// (POST /workout-plans)
+	PostWorkoutPlans(c *fiber.Ctx) error
+	// Get workouts for a user
+	// (GET /workouts)
+	GetWorkouts(c *fiber.Ctx, params GetWorkoutsParams) error
+	// Create a new workout
+	// (POST /workouts)
+	PostWorkouts(c *fiber.Ctx) error
+	// Get workout by ID
+	// (GET /workouts/{workoutId})
+	GetWorkoutsWorkoutId(c *fiber.Ctx, workoutId openapi_types.UUID) error
+	// Update workout
+	// (PUT /workouts/{workoutId})
+	PutWorkoutsWorkoutId(c *fiber.Ctx, workoutId openapi_types.UUID) error
+	// Complete a workout
+	// (POST /workouts/{workoutId}/complete)
+	PostWorkoutsWorkoutIdComplete(c *fiber.Ctx, workoutId openapi_types.UUID) error
+	// Start a workout
+	// (POST /workouts/{workoutId}/start)
+	PostWorkoutsWorkoutIdStart(c *fiber.Ctx, workoutId openapi_types.UUID) error
+}
+
+// ServerInterfaceWrapper converts contexts to parameters.
+type ServerInterfaceWrapper struct {
+	Handler ServerInterface
+}
+
+type MiddlewareFunc fiber.Handler
+
+// GetExercises operation middleware
+func (siw *ServerInterfaceWrapper) GetExercises(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:workouts"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetExercisesParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "muscleGroup" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "muscleGroup", query, &params.MuscleGroup)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter muscleGroup: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "difficulty" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "difficulty", query, &params.Difficulty)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter difficulty: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "query" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "query", query, &params.Query)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter query: %w", err).Error())
+	}
+
+	return siw.Handler.GetExercises(c, params)
+}
+
+// PostExercises operation middleware
+func (siw *ServerInterfaceWrapper) PostExercises(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:workouts"})
+
+	return siw.Handler.PostExercises(c)
+}
+
+// GetExercisesExerciseId operation middleware
+func (siw *ServerInterfaceWrapper) GetExercisesExerciseId(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "exerciseId" -------------
+	var exerciseId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "exerciseId", c.Params("exerciseId"), &exerciseId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter exerciseId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:workouts"})
+
+	return siw.Handler.GetExercisesExerciseId(c, exerciseId)
+}
+
+// GetProgress operation middleware
+func (siw *ServerInterfaceWrapper) GetProgress(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:user"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetProgressParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", query, &params.UserId)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter userId: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "metricType" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "metricType", query, &params.MetricType)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter metricType: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "startDate" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "startDate", query, &params.StartDate)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter startDate: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "endDate" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "endDate", query, &params.EndDate)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter endDate: %w", err).Error())
+	}
+
+	return siw.Handler.GetProgress(c, params)
+}
+
+// PostProgress operation middleware
+func (siw *ServerInterfaceWrapper) PostProgress(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:user"})
+
+	return siw.Handler.PostProgress(c)
+}
+
+// PostUsers operation middleware
+func (siw *ServerInterfaceWrapper) PostUsers(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:user"})
+
+	return siw.Handler.PostUsers(c)
+}
+
+// GetUsersUserId operation middleware
+func (siw *ServerInterfaceWrapper) GetUsersUserId(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Params("userId"), &userId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter userId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:user"})
+
+	return siw.Handler.GetUsersUserId(c, userId)
+}
+
+// PutUsersUserId operation middleware
+func (siw *ServerInterfaceWrapper) PutUsersUserId(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "userId" -------------
+	var userId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "userId", c.Params("userId"), &userId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter userId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:user"})
+
+	return siw.Handler.PutUsersUserId(c, userId)
+}
+
+// GetWorkoutPlans operation middleware
+func (siw *ServerInterfaceWrapper) GetWorkoutPlans(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:plans"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWorkoutPlansParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", query, &params.UserId)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter userId: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "isActive" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "isActive", query, &params.IsActive)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter isActive: %w", err).Error())
+	}
+
+	return siw.Handler.GetWorkoutPlans(c, params)
+}
+
+// PostWorkoutPlans operation middleware
+func (siw *ServerInterfaceWrapper) PostWorkoutPlans(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:plans"})
+
+	return siw.Handler.PostWorkoutPlans(c)
+}
+
+// GetWorkouts operation middleware
+func (siw *ServerInterfaceWrapper) GetWorkouts(c *fiber.Ctx) error {
+
+	var err error
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:workouts"})
+
+	// Parameter object where we will unmarshal all parameters from the context
+	var params GetWorkoutsParams
+
+	var query url.Values
+	query, err = url.ParseQuery(string(c.Request().URI().QueryString()))
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for query string: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "userId" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "userId", query, &params.UserId)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter userId: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "status" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "status", query, &params.Status)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter status: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "startDate" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "startDate", query, &params.StartDate)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter startDate: %w", err).Error())
+	}
+
+	// ------------- Optional query parameter "endDate" -------------
+
+	err = runtime.BindQueryParameter("form", true, false, "endDate", query, &params.EndDate)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter endDate: %w", err).Error())
+	}
+
+	return siw.Handler.GetWorkouts(c, params)
+}
+
+// PostWorkouts operation middleware
+func (siw *ServerInterfaceWrapper) PostWorkouts(c *fiber.Ctx) error {
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:workouts"})
+
+	return siw.Handler.PostWorkouts(c)
+}
+
+// GetWorkoutsWorkoutId operation middleware
+func (siw *ServerInterfaceWrapper) GetWorkoutsWorkoutId(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "workoutId" -------------
+	var workoutId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workoutId", c.Params("workoutId"), &workoutId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter workoutId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"read:workouts"})
+
+	return siw.Handler.GetWorkoutsWorkoutId(c, workoutId)
+}
+
+// PutWorkoutsWorkoutId operation middleware
+func (siw *ServerInterfaceWrapper) PutWorkoutsWorkoutId(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "workoutId" -------------
+	var workoutId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workoutId", c.Params("workoutId"), &workoutId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter workoutId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:workouts"})
+
+	return siw.Handler.PutWorkoutsWorkoutId(c, workoutId)
+}
+
+// PostWorkoutsWorkoutIdComplete operation middleware
+func (siw *ServerInterfaceWrapper) PostWorkoutsWorkoutIdComplete(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "workoutId" -------------
+	var workoutId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workoutId", c.Params("workoutId"), &workoutId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter workoutId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:workouts"})
+
+	return siw.Handler.PostWorkoutsWorkoutIdComplete(c, workoutId)
+}
+
+// PostWorkoutsWorkoutIdStart operation middleware
+func (siw *ServerInterfaceWrapper) PostWorkoutsWorkoutIdStart(c *fiber.Ctx) error {
+
+	var err error
+
+	// ------------- Path parameter "workoutId" -------------
+	var workoutId openapi_types.UUID
+
+	err = runtime.BindStyledParameterWithOptions("simple", "workoutId", c.Params("workoutId"), &workoutId, runtime.BindStyledParameterOptions{Explode: false, Required: true})
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, fmt.Errorf("Invalid format for parameter workoutId: %w", err).Error())
+	}
+
+	c.Context().SetUserValue(OAuth2Scopes, []string{"write:workouts"})
+
+	return siw.Handler.PostWorkoutsWorkoutIdStart(c, workoutId)
+}
+
+// FiberServerOptions provides options for the Fiber server.
+type FiberServerOptions struct {
+	BaseURL     string
+	Middlewares []MiddlewareFunc
+}
+
+// RegisterHandlers creates http.Handler with routing matching OpenAPI spec.
+func RegisterHandlers(router fiber.Router, si ServerInterface) {
+	RegisterHandlersWithOptions(router, si, FiberServerOptions{})
+}
+
+// RegisterHandlersWithOptions creates http.Handler with additional options
+func RegisterHandlersWithOptions(router fiber.Router, si ServerInterface, options FiberServerOptions) {
+	wrapper := ServerInterfaceWrapper{
+		Handler: si,
+	}
+
+	for _, m := range options.Middlewares {
+		router.Use(fiber.Handler(m))
+	}
+
+	router.Get(options.BaseURL+"/exercises", wrapper.GetExercises)
+
+	router.Post(options.BaseURL+"/exercises", wrapper.PostExercises)
+
+	router.Get(options.BaseURL+"/exercises/:exerciseId", wrapper.GetExercisesExerciseId)
+
+	router.Get(options.BaseURL+"/progress", wrapper.GetProgress)
+
+	router.Post(options.BaseURL+"/progress", wrapper.PostProgress)
+
+	router.Post(options.BaseURL+"/users", wrapper.PostUsers)
+
+	router.Get(options.BaseURL+"/users/:userId", wrapper.GetUsersUserId)
+
+	router.Put(options.BaseURL+"/users/:userId", wrapper.PutUsersUserId)
+
+	router.Get(options.BaseURL+"/workout-plans", wrapper.GetWorkoutPlans)
+
+	router.Post(options.BaseURL+"/workout-plans", wrapper.PostWorkoutPlans)
+
+	router.Get(options.BaseURL+"/workouts", wrapper.GetWorkouts)
+
+	router.Post(options.BaseURL+"/workouts", wrapper.PostWorkouts)
+
+	router.Get(options.BaseURL+"/workouts/:workoutId", wrapper.GetWorkoutsWorkoutId)
+
+	router.Put(options.BaseURL+"/workouts/:workoutId", wrapper.PutWorkoutsWorkoutId)
+
+	router.Post(options.BaseURL+"/workouts/:workoutId/complete", wrapper.PostWorkoutsWorkoutIdComplete)
+
+	router.Post(options.BaseURL+"/workouts/:workoutId/start", wrapper.PostWorkoutsWorkoutIdStart)
+
+}
+
+type GetExercisesRequestObject struct {
+	Params GetExercisesParams
+}
+
+type GetExercisesResponseObject interface {
+	VisitGetExercisesResponse(ctx *fiber.Ctx) error
+}
+
+type GetExercises200JSONResponse []Exercise
+
+func (response GetExercises200JSONResponse) VisitGetExercisesResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type PostExercisesRequestObject struct {
+	Body *PostExercisesJSONRequestBody
+}
+
+type PostExercisesResponseObject interface {
+	VisitPostExercisesResponse(ctx *fiber.Ctx) error
+}
+
+type PostExercises201Response struct {
+}
+
+func (response PostExercises201Response) VisitPostExercisesResponse(ctx *fiber.Ctx) error {
+	ctx.Status(201)
+	return nil
+}
+
+type PostExercises400Response struct {
+}
+
+func (response PostExercises400Response) VisitPostExercisesResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type GetExercisesExerciseIdRequestObject struct {
+	ExerciseId openapi_types.UUID `json:"exerciseId"`
+}
+
+type GetExercisesExerciseIdResponseObject interface {
+	VisitGetExercisesExerciseIdResponse(ctx *fiber.Ctx) error
+}
+
+type GetExercisesExerciseId200JSONResponse Exercise
+
+func (response GetExercisesExerciseId200JSONResponse) VisitGetExercisesExerciseIdResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type GetExercisesExerciseId404Response struct {
+}
+
+func (response GetExercisesExerciseId404Response) VisitGetExercisesExerciseIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+type GetProgressRequestObject struct {
+	Params GetProgressParams
+}
+
+type GetProgressResponseObject interface {
+	VisitGetProgressResponse(ctx *fiber.Ctx) error
+}
+
+type GetProgress200JSONResponse []ProgressMetric
+
+func (response GetProgress200JSONResponse) VisitGetProgressResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type PostProgressRequestObject struct {
+	Body *PostProgressJSONRequestBody
+}
+
+type PostProgressResponseObject interface {
+	VisitPostProgressResponse(ctx *fiber.Ctx) error
+}
+
+type PostProgress201Response struct {
+}
+
+func (response PostProgress201Response) VisitPostProgressResponse(ctx *fiber.Ctx) error {
+	ctx.Status(201)
+	return nil
+}
+
+type PostProgress400Response struct {
+}
+
+func (response PostProgress400Response) VisitPostProgressResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type PostUsersRequestObject struct {
+	Body *PostUsersJSONRequestBody
+}
+
+type PostUsersResponseObject interface {
+	VisitPostUsersResponse(ctx *fiber.Ctx) error
+}
+
+type PostUsers201Response struct {
+}
+
+func (response PostUsers201Response) VisitPostUsersResponse(ctx *fiber.Ctx) error {
+	ctx.Status(201)
+	return nil
+}
+
+type PostUsers400Response struct {
+}
+
+func (response PostUsers400Response) VisitPostUsersResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type GetUsersUserIdRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+}
+
+type GetUsersUserIdResponseObject interface {
+	VisitGetUsersUserIdResponse(ctx *fiber.Ctx) error
+}
+
+type GetUsersUserId200JSONResponse User
+
+func (response GetUsersUserId200JSONResponse) VisitGetUsersUserIdResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type GetUsersUserId404Response struct {
+}
+
+func (response GetUsersUserId404Response) VisitGetUsersUserIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+type PutUsersUserIdRequestObject struct {
+	UserId openapi_types.UUID `json:"userId"`
+	Body   *PutUsersUserIdJSONRequestBody
+}
+
+type PutUsersUserIdResponseObject interface {
+	VisitPutUsersUserIdResponse(ctx *fiber.Ctx) error
+}
+
+type PutUsersUserId200Response struct {
+}
+
+func (response PutUsersUserId200Response) VisitPutUsersUserIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(200)
+	return nil
+}
+
+type PutUsersUserId400Response struct {
+}
+
+func (response PutUsersUserId400Response) VisitPutUsersUserIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type PutUsersUserId404Response struct {
+}
+
+func (response PutUsersUserId404Response) VisitPutUsersUserIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+type GetWorkoutPlansRequestObject struct {
+	Params GetWorkoutPlansParams
+}
+
+type GetWorkoutPlansResponseObject interface {
+	VisitGetWorkoutPlansResponse(ctx *fiber.Ctx) error
+}
+
+type GetWorkoutPlans200JSONResponse []WorkoutPlan
+
+func (response GetWorkoutPlans200JSONResponse) VisitGetWorkoutPlansResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type PostWorkoutPlansRequestObject struct {
+	Body *PostWorkoutPlansJSONRequestBody
+}
+
+type PostWorkoutPlansResponseObject interface {
+	VisitPostWorkoutPlansResponse(ctx *fiber.Ctx) error
+}
+
+type PostWorkoutPlans201Response struct {
+}
+
+func (response PostWorkoutPlans201Response) VisitPostWorkoutPlansResponse(ctx *fiber.Ctx) error {
+	ctx.Status(201)
+	return nil
+}
+
+type PostWorkoutPlans400Response struct {
+}
+
+func (response PostWorkoutPlans400Response) VisitPostWorkoutPlansResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type GetWorkoutsRequestObject struct {
+	Params GetWorkoutsParams
+}
+
+type GetWorkoutsResponseObject interface {
+	VisitGetWorkoutsResponse(ctx *fiber.Ctx) error
+}
+
+type GetWorkouts200JSONResponse []Workout
+
+func (response GetWorkouts200JSONResponse) VisitGetWorkoutsResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type PostWorkoutsRequestObject struct {
+	Body *PostWorkoutsJSONRequestBody
+}
+
+type PostWorkoutsResponseObject interface {
+	VisitPostWorkoutsResponse(ctx *fiber.Ctx) error
+}
+
+type PostWorkouts201Response struct {
+}
+
+func (response PostWorkouts201Response) VisitPostWorkoutsResponse(ctx *fiber.Ctx) error {
+	ctx.Status(201)
+	return nil
+}
+
+type PostWorkouts400Response struct {
+}
+
+func (response PostWorkouts400Response) VisitPostWorkoutsResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type GetWorkoutsWorkoutIdRequestObject struct {
+	WorkoutId openapi_types.UUID `json:"workoutId"`
+}
+
+type GetWorkoutsWorkoutIdResponseObject interface {
+	VisitGetWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error
+}
+
+type GetWorkoutsWorkoutId200JSONResponse Workout
+
+func (response GetWorkoutsWorkoutId200JSONResponse) VisitGetWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error {
+	ctx.Response().Header.Set("Content-Type", "application/json")
+	ctx.Status(200)
+
+	return ctx.JSON(&response)
+}
+
+type GetWorkoutsWorkoutId404Response struct {
+}
+
+func (response GetWorkoutsWorkoutId404Response) VisitGetWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+type PutWorkoutsWorkoutIdRequestObject struct {
+	WorkoutId openapi_types.UUID `json:"workoutId"`
+	Body      *PutWorkoutsWorkoutIdJSONRequestBody
+}
+
+type PutWorkoutsWorkoutIdResponseObject interface {
+	VisitPutWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error
+}
+
+type PutWorkoutsWorkoutId200Response struct {
+}
+
+func (response PutWorkoutsWorkoutId200Response) VisitPutWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(200)
+	return nil
+}
+
+type PutWorkoutsWorkoutId400Response struct {
+}
+
+func (response PutWorkoutsWorkoutId400Response) VisitPutWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type PutWorkoutsWorkoutId404Response struct {
+}
+
+func (response PutWorkoutsWorkoutId404Response) VisitPutWorkoutsWorkoutIdResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+type PostWorkoutsWorkoutIdCompleteRequestObject struct {
+	WorkoutId openapi_types.UUID `json:"workoutId"`
+}
+
+type PostWorkoutsWorkoutIdCompleteResponseObject interface {
+	VisitPostWorkoutsWorkoutIdCompleteResponse(ctx *fiber.Ctx) error
+}
+
+type PostWorkoutsWorkoutIdComplete200Response struct {
+}
+
+func (response PostWorkoutsWorkoutIdComplete200Response) VisitPostWorkoutsWorkoutIdCompleteResponse(ctx *fiber.Ctx) error {
+	ctx.Status(200)
+	return nil
+}
+
+type PostWorkoutsWorkoutIdComplete400Response struct {
+}
+
+func (response PostWorkoutsWorkoutIdComplete400Response) VisitPostWorkoutsWorkoutIdCompleteResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type PostWorkoutsWorkoutIdComplete404Response struct {
+}
+
+func (response PostWorkoutsWorkoutIdComplete404Response) VisitPostWorkoutsWorkoutIdCompleteResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+type PostWorkoutsWorkoutIdStartRequestObject struct {
+	WorkoutId openapi_types.UUID `json:"workoutId"`
+}
+
+type PostWorkoutsWorkoutIdStartResponseObject interface {
+	VisitPostWorkoutsWorkoutIdStartResponse(ctx *fiber.Ctx) error
+}
+
+type PostWorkoutsWorkoutIdStart200Response struct {
+}
+
+func (response PostWorkoutsWorkoutIdStart200Response) VisitPostWorkoutsWorkoutIdStartResponse(ctx *fiber.Ctx) error {
+	ctx.Status(200)
+	return nil
+}
+
+type PostWorkoutsWorkoutIdStart400Response struct {
+}
+
+func (response PostWorkoutsWorkoutIdStart400Response) VisitPostWorkoutsWorkoutIdStartResponse(ctx *fiber.Ctx) error {
+	ctx.Status(400)
+	return nil
+}
+
+type PostWorkoutsWorkoutIdStart404Response struct {
+}
+
+func (response PostWorkoutsWorkoutIdStart404Response) VisitPostWorkoutsWorkoutIdStartResponse(ctx *fiber.Ctx) error {
+	ctx.Status(404)
+	return nil
+}
+
+// StrictServerInterface represents all server handlers.
+type StrictServerInterface interface {
+	// Get exercises with filtering options
+	// (GET /exercises)
+	GetExercises(ctx context.Context, request GetExercisesRequestObject) (GetExercisesResponseObject, error)
+	// Create a new exercise
+	// (POST /exercises)
+	PostExercises(ctx context.Context, request PostExercisesRequestObject) (PostExercisesResponseObject, error)
+	// Get exercise by ID
+	// (GET /exercises/{exerciseId})
+	GetExercisesExerciseId(ctx context.Context, request GetExercisesExerciseIdRequestObject) (GetExercisesExerciseIdResponseObject, error)
+	// Get progress metrics for a user
+	// (GET /progress)
+	GetProgress(ctx context.Context, request GetProgressRequestObject) (GetProgressResponseObject, error)
+	// Add a progress metric
+	// (POST /progress)
+	PostProgress(ctx context.Context, request PostProgressRequestObject) (PostProgressResponseObject, error)
+	// Create a new user
+	// (POST /users)
+	PostUsers(ctx context.Context, request PostUsersRequestObject) (PostUsersResponseObject, error)
+	// Get user by ID
+	// (GET /users/{userId})
+	GetUsersUserId(ctx context.Context, request GetUsersUserIdRequestObject) (GetUsersUserIdResponseObject, error)
+	// Update user
+	// (PUT /users/{userId})
+	PutUsersUserId(ctx context.Context, request PutUsersUserIdRequestObject) (PutUsersUserIdResponseObject, error)
+	// Get workout plans for a user
+	// (GET /workout-plans)
+	GetWorkoutPlans(ctx context.Context, request GetWorkoutPlansRequestObject) (GetWorkoutPlansResponseObject, error)
+	// Create a new workout plan
+	// (POST /workout-plans)
+	PostWorkoutPlans(ctx context.Context, request PostWorkoutPlansRequestObject) (PostWorkoutPlansResponseObject, error)
+	// Get workouts for a user
+	// (GET /workouts)
+	GetWorkouts(ctx context.Context, request GetWorkoutsRequestObject) (GetWorkoutsResponseObject, error)
+	// Create a new workout
+	// (POST /workouts)
+	PostWorkouts(ctx context.Context, request PostWorkoutsRequestObject) (PostWorkoutsResponseObject, error)
+	// Get workout by ID
+	// (GET /workouts/{workoutId})
+	GetWorkoutsWorkoutId(ctx context.Context, request GetWorkoutsWorkoutIdRequestObject) (GetWorkoutsWorkoutIdResponseObject, error)
+	// Update workout
+	// (PUT /workouts/{workoutId})
+	PutWorkoutsWorkoutId(ctx context.Context, request PutWorkoutsWorkoutIdRequestObject) (PutWorkoutsWorkoutIdResponseObject, error)
+	// Complete a workout
+	// (POST /workouts/{workoutId}/complete)
+	PostWorkoutsWorkoutIdComplete(ctx context.Context, request PostWorkoutsWorkoutIdCompleteRequestObject) (PostWorkoutsWorkoutIdCompleteResponseObject, error)
+	// Start a workout
+	// (POST /workouts/{workoutId}/start)
+	PostWorkoutsWorkoutIdStart(ctx context.Context, request PostWorkoutsWorkoutIdStartRequestObject) (PostWorkoutsWorkoutIdStartResponseObject, error)
+}
+
+type StrictHandlerFunc func(ctx *fiber.Ctx, args interface{}) (interface{}, error)
+
+type StrictMiddlewareFunc func(f StrictHandlerFunc, operationID string) StrictHandlerFunc
+
+func NewStrictHandler(ssi StrictServerInterface, middlewares []StrictMiddlewareFunc) ServerInterface {
+	return &strictHandler{ssi: ssi, middlewares: middlewares}
+}
+
+type strictHandler struct {
+	ssi         StrictServerInterface
+	middlewares []StrictMiddlewareFunc
+}
+
+// GetExercises operation middleware
+func (sh *strictHandler) GetExercises(ctx *fiber.Ctx, params GetExercisesParams) error {
+	var request GetExercisesRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExercises(ctx.UserContext(), request.(GetExercisesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExercises")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetExercisesResponseObject); ok {
+		if err := validResponse.VisitGetExercisesResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostExercises operation middleware
+func (sh *strictHandler) PostExercises(ctx *fiber.Ctx) error {
+	var request PostExercisesRequestObject
+
+	var body PostExercisesJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostExercises(ctx.UserContext(), request.(PostExercisesRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostExercises")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostExercisesResponseObject); ok {
+		if err := validResponse.VisitPostExercisesResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetExercisesExerciseId operation middleware
+func (sh *strictHandler) GetExercisesExerciseId(ctx *fiber.Ctx, exerciseId openapi_types.UUID) error {
+	var request GetExercisesExerciseIdRequestObject
+
+	request.ExerciseId = exerciseId
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetExercisesExerciseId(ctx.UserContext(), request.(GetExercisesExerciseIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetExercisesExerciseId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetExercisesExerciseIdResponseObject); ok {
+		if err := validResponse.VisitGetExercisesExerciseIdResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetProgress operation middleware
+func (sh *strictHandler) GetProgress(ctx *fiber.Ctx, params GetProgressParams) error {
+	var request GetProgressRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetProgress(ctx.UserContext(), request.(GetProgressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetProgress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetProgressResponseObject); ok {
+		if err := validResponse.VisitGetProgressResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostProgress operation middleware
+func (sh *strictHandler) PostProgress(ctx *fiber.Ctx) error {
+	var request PostProgressRequestObject
+
+	var body PostProgressJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostProgress(ctx.UserContext(), request.(PostProgressRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostProgress")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostProgressResponseObject); ok {
+		if err := validResponse.VisitPostProgressResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostUsers operation middleware
+func (sh *strictHandler) PostUsers(ctx *fiber.Ctx) error {
+	var request PostUsersRequestObject
+
+	var body PostUsersJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostUsers(ctx.UserContext(), request.(PostUsersRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostUsers")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostUsersResponseObject); ok {
+		if err := validResponse.VisitPostUsersResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetUsersUserId operation middleware
+func (sh *strictHandler) GetUsersUserId(ctx *fiber.Ctx, userId openapi_types.UUID) error {
+	var request GetUsersUserIdRequestObject
+
+	request.UserId = userId
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetUsersUserId(ctx.UserContext(), request.(GetUsersUserIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetUsersUserId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetUsersUserIdResponseObject); ok {
+		if err := validResponse.VisitGetUsersUserIdResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PutUsersUserId operation middleware
+func (sh *strictHandler) PutUsersUserId(ctx *fiber.Ctx, userId openapi_types.UUID) error {
+	var request PutUsersUserIdRequestObject
+
+	request.UserId = userId
+
+	var body PutUsersUserIdJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PutUsersUserId(ctx.UserContext(), request.(PutUsersUserIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutUsersUserId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PutUsersUserIdResponseObject); ok {
+		if err := validResponse.VisitPutUsersUserIdResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetWorkoutPlans operation middleware
+func (sh *strictHandler) GetWorkoutPlans(ctx *fiber.Ctx, params GetWorkoutPlansParams) error {
+	var request GetWorkoutPlansRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWorkoutPlans(ctx.UserContext(), request.(GetWorkoutPlansRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWorkoutPlans")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetWorkoutPlansResponseObject); ok {
+		if err := validResponse.VisitGetWorkoutPlansResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostWorkoutPlans operation middleware
+func (sh *strictHandler) PostWorkoutPlans(ctx *fiber.Ctx) error {
+	var request PostWorkoutPlansRequestObject
+
+	var body PostWorkoutPlansJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostWorkoutPlans(ctx.UserContext(), request.(PostWorkoutPlansRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostWorkoutPlans")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostWorkoutPlansResponseObject); ok {
+		if err := validResponse.VisitPostWorkoutPlansResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetWorkouts operation middleware
+func (sh *strictHandler) GetWorkouts(ctx *fiber.Ctx, params GetWorkoutsParams) error {
+	var request GetWorkoutsRequestObject
+
+	request.Params = params
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWorkouts(ctx.UserContext(), request.(GetWorkoutsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWorkouts")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetWorkoutsResponseObject); ok {
+		if err := validResponse.VisitGetWorkoutsResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostWorkouts operation middleware
+func (sh *strictHandler) PostWorkouts(ctx *fiber.Ctx) error {
+	var request PostWorkoutsRequestObject
+
+	var body PostWorkoutsJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostWorkouts(ctx.UserContext(), request.(PostWorkoutsRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostWorkouts")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostWorkoutsResponseObject); ok {
+		if err := validResponse.VisitPostWorkoutsResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// GetWorkoutsWorkoutId operation middleware
+func (sh *strictHandler) GetWorkoutsWorkoutId(ctx *fiber.Ctx, workoutId openapi_types.UUID) error {
+	var request GetWorkoutsWorkoutIdRequestObject
+
+	request.WorkoutId = workoutId
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.GetWorkoutsWorkoutId(ctx.UserContext(), request.(GetWorkoutsWorkoutIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "GetWorkoutsWorkoutId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(GetWorkoutsWorkoutIdResponseObject); ok {
+		if err := validResponse.VisitGetWorkoutsWorkoutIdResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PutWorkoutsWorkoutId operation middleware
+func (sh *strictHandler) PutWorkoutsWorkoutId(ctx *fiber.Ctx, workoutId openapi_types.UUID) error {
+	var request PutWorkoutsWorkoutIdRequestObject
+
+	request.WorkoutId = workoutId
+
+	var body PutWorkoutsWorkoutIdJSONRequestBody
+	if err := ctx.BodyParser(&body); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+	request.Body = &body
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PutWorkoutsWorkoutId(ctx.UserContext(), request.(PutWorkoutsWorkoutIdRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PutWorkoutsWorkoutId")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PutWorkoutsWorkoutIdResponseObject); ok {
+		if err := validResponse.VisitPutWorkoutsWorkoutIdResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostWorkoutsWorkoutIdComplete operation middleware
+func (sh *strictHandler) PostWorkoutsWorkoutIdComplete(ctx *fiber.Ctx, workoutId openapi_types.UUID) error {
+	var request PostWorkoutsWorkoutIdCompleteRequestObject
+
+	request.WorkoutId = workoutId
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostWorkoutsWorkoutIdComplete(ctx.UserContext(), request.(PostWorkoutsWorkoutIdCompleteRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostWorkoutsWorkoutIdComplete")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostWorkoutsWorkoutIdCompleteResponseObject); ok {
+		if err := validResponse.VisitPostWorkoutsWorkoutIdCompleteResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// PostWorkoutsWorkoutIdStart operation middleware
+func (sh *strictHandler) PostWorkoutsWorkoutIdStart(ctx *fiber.Ctx, workoutId openapi_types.UUID) error {
+	var request PostWorkoutsWorkoutIdStartRequestObject
+
+	request.WorkoutId = workoutId
+
+	handler := func(ctx *fiber.Ctx, request interface{}) (interface{}, error) {
+		return sh.ssi.PostWorkoutsWorkoutIdStart(ctx.UserContext(), request.(PostWorkoutsWorkoutIdStartRequestObject))
+	}
+	for _, middleware := range sh.middlewares {
+		handler = middleware(handler, "PostWorkoutsWorkoutIdStart")
+	}
+
+	response, err := handler(ctx, request)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	} else if validResponse, ok := response.(PostWorkoutsWorkoutIdStartResponseObject); ok {
+		if err := validResponse.VisitPostWorkoutsWorkoutIdStartResponse(ctx); err != nil {
+			return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		}
+	} else if response != nil {
+		return fmt.Errorf("unexpected response type: %T", response)
+	}
+	return nil
+}
+
+// Base64 encoded, gzipped, json marshaled Swagger object
+var swaggerSpec = []string{
+
+	"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",
+}
+
+// GetSwagger returns the content of the embedded swagger specification file
+// or error if failed to decode
+func decodeSpec() ([]byte, error) {
+	zipped, err := base64.StdEncoding.DecodeString(strings.Join(swaggerSpec, ""))
+	if err != nil {
+		return nil, fmt.Errorf("error base64 decoding spec: %w", err)
+	}
+	zr, err := gzip.NewReader(bytes.NewReader(zipped))
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+	var buf bytes.Buffer
+	_, err = buf.ReadFrom(zr)
+	if err != nil {
+		return nil, fmt.Errorf("error decompressing spec: %w", err)
+	}
+
+	return buf.Bytes(), nil
+}
+
+var rawSpec = decodeSpecCached()
+
+// a naive cached of a decoded swagger spec
+func decodeSpecCached() func() ([]byte, error) {
+	data, err := decodeSpec()
+	return func() ([]byte, error) {
+		return data, err
+	}
+}
+
+// Constructs a synthetic filesystem for resolving external references when loading openapi specifications.
+func PathToRawSpec(pathToFile string) map[string]func() ([]byte, error) {
+	res := make(map[string]func() ([]byte, error))
+	if len(pathToFile) > 0 {
+		res[pathToFile] = rawSpec
+	}
+
+	return res
+}
+
+// GetSwagger returns the Swagger specification corresponding to the generated code
+// in this file. The external references of Swagger specification are resolved.
+// The logic of resolving external references is tightly connected to "import-mapping" feature.
+// Externally referenced files must be embedded in the corresponding golang packages.
+// Urls can be supported but this task was out of the scope.
+func GetSwagger() (swagger *openapi3.T, err error) {
+	resolvePath := PathToRawSpec("")
+
+	loader := openapi3.NewLoader()
+	loader.IsExternalRefsAllowed = true
+	loader.ReadFromURIFunc = func(loader *openapi3.Loader, url *url.URL) ([]byte, error) {
+		pathToFile := url.String()
+		pathToFile = path.Clean(pathToFile)
+		getSpec, ok := resolvePath[pathToFile]
+		if !ok {
+			err1 := fmt.Errorf("path not found: %s", pathToFile)
+			return nil, err1
+		}
+		return getSpec()
+	}
+	var specData []byte
+	specData, err = rawSpec()
+	if err != nil {
+		return
+	}
+	swagger, err = loader.LoadFromData(specData)
+	if err != nil {
+		return
+	}
+	return
+}
