@@ -141,6 +141,12 @@ This project demonstrates how to use the [oapi-codegen](https://github.com/oapi-
    ./scripts/generate.sh
    ```
 
+   or
+
+   ```powershell
+   ./scripts/generate.ps1
+   ```
+
 4. Build and run the application
    ```bash
    go build -o palaestra-api ./cmd/api
@@ -162,3 +168,116 @@ The API will be available at http://localhost:8080/v1
 ## Authentication
 
 The API uses OAuth2 authorization. All endpoints are secured and require an access token with appropriate scopes.
+
+## Hexagonal Architecture Implementation
+
+This project implements the hexagonal architecture (ports and adapters) pattern, which provides clear separation of concerns:
+
+### Core Components
+
+1. **Domain** (`internal/domain/models`): Contains the core business entities generated from the OpenAPI schema.
+
+   - These models represent the fundamental data structures and business objects.
+   - Generated using oapi-codegen from the OpenAPI specification.
+
+2. **Ports** (`internal/core/ports`): Defines interfaces for interactions with the core application.
+   - `repository_ports.go`: Interfaces for data persistence operations
+   - `service_ports.go`: Interfaces for business logic services
+3. **Services** (`internal/core/services`): Implements the business logic.
+
+   - Contains implementation of services that connect repositories to the API.
+   - Handles validation, transformation, and business rules.
+
+4. **Adapters** (`internal/adapters`): Connects the application to external concerns.
+   - `api`: HTTP handlers using Fiber, generated from OpenAPI specification
+   - `repository`: Data storage implementations (currently in-memory)
+
+### Data Flow
+
+The hexagonal architecture enforces a clean flow of dependencies:
+
+- External adapters → Ports → Core domain and services
+- Dependencies point inward, with the domain at the center
+- Core business logic doesn't depend on external frameworks or technologies
+
+## Code Generation
+
+The project leverages automatic code generation from the OpenAPI specification:
+
+### Using oapi-codegen
+
+We use oapi-codegen to generate:
+
+1. **Domain models**: Type definitions for all API objects
+2. **Server interfaces**: Required interfaces for implementing the API
+3. **Fiber server**: Integration with the Fiber web framework
+
+### Generating Code
+
+To regenerate code after changing the OpenAPI specification:
+
+```powershell
+# For PowerShell
+.\scripts\generate.ps1
+```
+
+This script:
+
+Generates domain models in `internal/domain/models/models.gen.go`
+
+Generates server interfaces `in internal/adapters/api/server.gen.go`
+
+## Docker Support
+
+The application includes Docker support for consistent deployment:
+
+### Docker Setup
+
+1. **Dockerfile**: Multi-stage build that compiles the Go application and creates a minimal runtime image.
+
+2. **docker-compose.yml**: Orchestrates the application deployment with proper port mapping.
+
+### Building and Running with Docker
+
+```bash
+# Build and run with Docker Compose
+docker-compose up --build
+
+# Or using Docker directly
+docker build -t palaestra-api .
+docker run -p 8080:8080 palaestra-api
+```
+
+### Production Considerations
+
+For production deployment:
+
+- The Docker image is optimized for size and security
+- Uses Alpine Linux for a minimal footprint
+- Proper port exposure for API access
+- Configurable through environment variables
+
+## Testing the API
+
+### PowerShell Commands
+
+```powershell
+# Create a user
+Invoke-RestMethod -Method POST -Uri "http://localhost:8080/users" -ContentType "application/json" -Body '{"email":"test@example.com","username":"testuser","firstName":"Test","lastName":"User"}'
+
+# Get a user (replace USER_ID with actual ID)
+Invoke-RestMethod -Method GET -Uri "http://localhost:8080/users/USER_ID"
+
+# Update a user (replace USER_ID with actual ID)
+Invoke-RestMethod -Method PUT -Uri "http://localhost:8080/users/USER_ID" -ContentType "application/json" -Body '{"email":"updated@example.com","username":"updateduser","firstName":"Updated","lastName":"User"}'
+```
+
+## Future Enchancements (TODO)
+
+Planned improvements for the project:
+
+1. **Database Integration**: Replace in-memory repositories with actual database adapters
+2. **Authentication**: Implement the OAuth2 flow described in the API specification with middleware
+3. **Logging and Monitoring**: Add structured logging and metrics collection
+4. **CI/CD Pipeline**: Automate testing, building, and deployment (Github workflows)
+5. **Remaining Endpoints**: Complete implementation of all API endpoints defined in the specification
