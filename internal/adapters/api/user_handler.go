@@ -4,24 +4,24 @@ import (
 	"github.com/d1joseph/palaestra/internal/core/ports"
 	"github.com/d1joseph/palaestra/internal/domain/models"
 	"github.com/gofiber/fiber/v2"
-	openapi_types "github.com/oapi-codegen/runtime/types"
+	openapitypes "github.com/oapi-codegen/runtime/types"
 )
 
-// APIHandler implements the generated ServerInterface
-type APIHandler struct {
+// Handler implements the generated ServerInterface
+type Handler struct {
 	userService ports.UserService
 	// Add other services as needed
 }
 
 // NewAPIHandler creates a new API handler
-func NewAPIHandler(userService ports.UserService) *APIHandler {
-	return &APIHandler{
+func NewAPIHandler(userService ports.UserService) *Handler {
+	return &Handler{
 		userService: userService,
 	}
 }
 
 // PostUsers handles user creation
-func (h *APIHandler) PostUsers(c *fiber.Ctx) error {
+func (h *Handler) PostUsers(c *fiber.Ctx) error {
 	var user models.User
 	if err := c.BodyParser(&user); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
@@ -35,7 +35,7 @@ func (h *APIHandler) PostUsers(c *fiber.Ctx) error {
 }
 
 // GetUsersUserId handles getting a user by ID
-func (h *APIHandler) GetUsersUserId(c *fiber.Ctx, userId openapi_types.UUID) error {
+func (h *Handler) GetUsersUserId(c *fiber.Ctx, userId openapitypes.UUID) error {
 	user, err := h.userService.GetUserByID(c.Context(), userId)
 	if err != nil {
 		return fiber.NewError(fiber.StatusNotFound, "User not found")
@@ -45,7 +45,7 @@ func (h *APIHandler) GetUsersUserId(c *fiber.Ctx, userId openapi_types.UUID) err
 }
 
 // PutUsersUserId handles updating a user
-func (h *APIHandler) PutUsersUserId(c *fiber.Ctx, userId openapi_types.UUID) error {
+func (h *Handler) PutUsersUserId(c *fiber.Ctx, userId openapitypes.UUID) error {
 	var user models.User
 	if err := c.BodyParser(&user); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
@@ -62,55 +62,55 @@ func (h *APIHandler) PutUsersUserId(c *fiber.Ctx, userId openapi_types.UUID) err
 }
 
 // GetExercises implementation using api.GetExercisesParams instead of models.GetExercisesParams
-func (h *APIHandler) GetExercises(c *fiber.Ctx, params GetExercisesParams) error {
+func (h *Handler) GetExercises(c *fiber.Ctx, params GetExercisesParams) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-// Additional server methods (implementing ServerInterface)
-func (h *APIHandler) PostExercises(c *fiber.Ctx) error {
+// PostExercises Additional server methods (implementing ServerInterface)
+func (h *Handler) PostExercises(c *fiber.Ctx) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) GetExercisesExerciseId(c *fiber.Ctx, exerciseId openapi_types.UUID) error {
+func (h *Handler) GetExercisesExerciseId(c *fiber.Ctx, exerciseId openapitypes.UUID) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) GetProgress(c *fiber.Ctx, params GetProgressParams) error {
+func (h *Handler) GetProgress(c *fiber.Ctx, params GetProgressParams) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) PostProgress(c *fiber.Ctx) error {
+func (h *Handler) PostProgress(c *fiber.Ctx) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) GetWorkoutPlans(c *fiber.Ctx, params GetWorkoutPlansParams) error {
+func (h *Handler) GetWorkoutPlans(c *fiber.Ctx, params GetWorkoutPlansParams) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) PostWorkoutPlans(c *fiber.Ctx) error {
+func (h *Handler) PostWorkoutPlans(c *fiber.Ctx) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) GetWorkouts(c *fiber.Ctx, params GetWorkoutsParams) error {
+func (h *Handler) GetWorkouts(c *fiber.Ctx, params GetWorkoutsParams) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) PostWorkouts(c *fiber.Ctx) error {
+func (h *Handler) PostWorkouts(c *fiber.Ctx) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) GetWorkoutsWorkoutId(c *fiber.Ctx, workoutId openapi_types.UUID) error {
+func (h *Handler) GetWorkoutsWorkoutId(c *fiber.Ctx, workoutId openapitypes.UUID) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) PutWorkoutsWorkoutId(c *fiber.Ctx, workoutId openapi_types.UUID) error {
+func (h *Handler) PutWorkoutsWorkoutId(c *fiber.Ctx, workoutId openapitypes.UUID) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) PostWorkoutsWorkoutIdComplete(c *fiber.Ctx, workoutId openapi_types.UUID) error {
+func (h *Handler) PostWorkoutsWorkoutIdComplete(c *fiber.Ctx, workoutId openapitypes.UUID) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }
 
-func (h *APIHandler) PostWorkoutsWorkoutIdStart(c *fiber.Ctx, workoutId openapi_types.UUID) error {
+func (h *Handler) PostWorkoutsWorkoutIdStart(c *fiber.Ctx, workoutId openapitypes.UUID) error {
 	return fiber.NewError(fiber.StatusNotImplemented, "Not implemented")
 }

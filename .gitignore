@@ -1,2 +1,5 @@
+# editor config
+.idea
+
 # environment variables
 .env
