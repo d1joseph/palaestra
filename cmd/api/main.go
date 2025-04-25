@@ -16,19 +16,14 @@ import (
 )
 
 func main() {
-	// Create a new Fiber app
 	app := fiber.New(fiber.Config{
 		AppName: "Palaestra API",
 	})
 
-	// Add middleware
+	// Middleware
 	app.Use(logger.New())
 	app.Use(recover.New())
-
-	// Initialize repository
 	userRepo := repository.NewMemoryUserRepository()
-
-	// Initialize service
 	userService := services.NewUserService(userRepo)
 
 	// Initialize API handler

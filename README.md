@@ -1,6 +1,6 @@
 # About Palaestra
 
-A really good ftness app.
+A good fitness app.
 
 This repository contains:
 
