@@ -183,6 +183,19 @@ The API will be available at http://localhost:8080/v1
 3. Update your handler implementations as needed
 4. Build and run the application
 
+### Makefile usage
+
+You can also run the `Makefile` for development workflow tasks.
+
+On Windows:
+```powershell
+mingw32-make run
+```
+On Unix:
+```shell
+make run
+```
+
 ## Authentication
 
 The API uses OAuth2 authorization. All endpoints are secured and require an access token with appropriate scopes.
