@@ -85,7 +85,7 @@ palaestra-api/
 │           └── models.gen.go # Generated from OpenAPI schemas
 ├── scripts/
 │   └── generate.sh           # Code generation script
-├── palaestra-api-v1.yml      # OpenAPI 3.0 specification
+├── palaestra-api-v1.yaml     # OpenAPI 3.0 specification
 ├── oapi-codegen-config.yaml  # Configuration for code generation
 ├── go.mod
 └── go.sum
@@ -123,7 +123,7 @@ This project demonstrates how to use the [oapi-codegen](https://github.com/oapi-
 
 3. **Generate the code**:
    ```bash
-   oapi-codegen -config oapi-codegen-config.yaml -generate types -package models -o internal/domain/models/models.gen.go palaestra-api-v1.yml
+   oapi-codegen -config oapi-codegen-config.yaml -generate types -package models -o internal/domain/models/models.gen.go palaestra-api-v1.yaml
    ```
 4. **Implement Fiber handlers**:
    - Create handler implementations in `internal/adapters/api/handler.go`
@@ -136,7 +136,8 @@ This project demonstrates how to use the [oapi-codegen](https://github.com/oapi-
 ### Prerequisites
 
 - Go 1.18 or higher
-- [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen)
+- [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) - Install with: `go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@latest`
+- Ensure `$GOPATH/bin` is in your PATH (add `export PATH=$PATH:$(go env GOPATH)/bin` to your shell profile)
 
 ### Installation
 
@@ -175,7 +176,7 @@ The API will be available at http://localhost:8080/v1
 
 ## Development Workflow
 
-1. Modify the OpenAPI specification (`palaestra-api-v1.yml`)
+1. Modify the OpenAPI specification (`palaestra-api-v1.yaml`)
 2. Run the code generation script to update models and embedded spec
    ```bash
    ./scripts/generate.sh
