@@ -6,3 +6,6 @@
 
 # build executables
 *.exe
+
+# generated code
+*.gen.go
