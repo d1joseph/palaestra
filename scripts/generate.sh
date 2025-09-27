@@ -12,9 +12,9 @@ mkdir -p internal/adapters/client
 echo "Generating model types..."
 oapi-codegen -config oapi-codegen-config.yaml -generate types -package models -o internal/domain/models/models.gen.go palaestra-api-v1.yaml
 
-# Generate embedded spec 
-echo "Generating embedded spec..."
-oapi-codegen -config oapi-codegen-config.yaml -generate embedded-spec -package api -o internal/adapters/api/spec.gen.go palaestra-api-v1.yaml
+# Generate server with embedded spec and types
+echo "Generating server with embedded spec..."
+oapi-codegen -config oapi-codegen-config.yaml -generate fiber,types,embedded-spec -package api -o internal/adapters/api/server.gen.go palaestra-api-v1.yaml
 
 # Generate client code (optional)
 echo "Generating client code..."

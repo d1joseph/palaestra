@@ -168,11 +168,16 @@ This project demonstrates how to use the [oapi-codegen](https://github.com/oapi-
 
 4. Build and run the application
    ```bash
-   go build -o palaestra-api ./cmd/api
-   ./palaestra-api
+   make run
    ```
 
-The API will be available at http://localhost:8080/v1
+   Or manually:
+   ```bash
+   go build -o palaestra.exe cmd/api/main.go
+   ./palaestra.exe
+   ```
+
+The API will be available at http://localhost:8080
 
 ## Development Workflow
 
@@ -291,11 +296,46 @@ For production deployment:
 
 ## Testing the API
 
+Once the API is running (using `make run`), you can test the endpoints using curl or PowerShell.
+
+### Curl Commands
+
+```bash
+# Create a user
+curl -X POST http://localhost:8080/users \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "test@example.com",
+    "username": "testuser",
+    "firstName": "Test",
+    "lastName": "User"
+  }'
+
+# Get all users
+curl -X GET http://localhost:8080/users
+
+# Get a specific user (replace USER_ID with actual ID from create response)
+curl -X GET http://localhost:8080/users/USER_ID
+
+# Update a user (replace USER_ID with actual ID)
+curl -X PUT http://localhost:8080/users/USER_ID \
+  -H "Content-Type: application/json" \
+  -d '{
+    "email": "updated@example.com",
+    "username": "updateduser",
+    "firstName": "Updated",
+    "lastName": "User"
+  }'
+```
+
 ### PowerShell Commands
 
 ```powershell
 # Create a user
 Invoke-RestMethod -Method POST -Uri "http://localhost:8080/users" -ContentType "application/json" -Body '{"email":"test@example.com","username":"testuser","firstName":"Test","lastName":"User"}'
+
+# Get all users
+Invoke-RestMethod -Method GET -Uri "http://localhost:8080/users"
 
 # Get a user (replace USER_ID with actual ID)
 Invoke-RestMethod -Method GET -Uri "http://localhost:8080/users/USER_ID"
@@ -303,6 +343,13 @@ Invoke-RestMethod -Method GET -Uri "http://localhost:8080/users/USER_ID"
 # Update a user (replace USER_ID with actual ID)
 Invoke-RestMethod -Method PUT -Uri "http://localhost:8080/users/USER_ID" -ContentType "application/json" -Body '{"email":"updated@example.com","username":"updateduser","firstName":"Updated","lastName":"User"}'
 ```
+
+**Testing workflow:**
+1. Start the API with `make run`
+2. Use the "Create a user" command to add a user
+3. Copy the user ID from the response
+4. Use the "Get a specific user" command with that ID
+5. Test other endpoints as needed
 
 ## Future Enchancements (TODO)
 
