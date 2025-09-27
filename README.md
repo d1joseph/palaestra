@@ -1,20 +1,11 @@
 # About Palaestra
 
-A good fitness app.
-
-This repository contains:
-
-- Backend of [palaestra.fit](https://palaestra.fit)
-- Infrastructure as code
-- CICD Workflows
-- Testing and performance bench marking utilities
-- Build, run and test locally before deploying
+A core microservice of Palaestra Fitness app.
 
 ## Contents
 
 1. [Features](#features)
 2. [Requirements](#requirements)
-   - [Development](#development)
 3. [Project Structure](#project-structure)
 4. [Using oapi-codegen with Go Fiber](#using-oapi-codegen-with-go-fiber)
 5. [Getting Started](#getting-started)
@@ -33,22 +24,17 @@ This repository contains:
     - [Building and Running with Docker](#building-and-running-with-docker)
     - [Production Considerations](#production-considerations)
 11. [Testing the API](#testing-the-api)
-12. [Future Enhancements (TODO)](#future-enchancements-todo)
+12. [TODO](#todo)
 
 ## Features
-
-- Open API compliant REST API
-- Code generation using [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen)
+[list features here]
 
 ## Requirements
-
-### Development
-
 - [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) (only binary installations are supported for contribututions)
-
+- Go Version 1.18 or higher
 ## Project Structure
 
-This project follows the hexagonal architecture pattern (also known as ports and adapters):
+This Palaestra microservice follows the [hexagonal architecture]() pattern (also known as ports and adapters):
 
 ```
 palaestra-api/
@@ -93,7 +79,7 @@ palaestra-api/
 
 ## Using oapi-codegen with Go Fiber
 
-This project demonstrates how to use the [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) tool with Go Fiber for API development. Unlike the standard approach that generates a complete server implementation, this project uses oapi-codegen only for model generation while manually implementing the Fiber handlers.
+The development workflow of this project uses the [oapi-codegen](https://github.com/oapi-codegen/oapi-codegen) tool with Go Fiber for API development. Unlike the standard approach that generates a complete server implementation, this project uses oapi-codegen only for model generation while manually implementing the Fiber handlers.
 
 ### The approach consists of:
 
@@ -208,7 +194,7 @@ The API uses OAuth2 authorization. All endpoints are secured and require an acce
 
 ## Hexagonal Architecture Implementation
 
-This project implements the hexagonal architecture (ports and adapters) pattern, which provides clear separation of concerns:
+As mentioned earlier, this project implements the hexagonal architecture (ports and adapters) pattern, which provides clear separation of concerns:
 
 ### Core Components
 
@@ -239,7 +225,7 @@ The hexagonal architecture enforces a clean flow of dependencies:
 
 ## Code Generation
 
-The project leverages automatic code generation from the OpenAPI specification:
+Utilize automatic code generation from the OpenAPI specification:
 
 ### Using oapi-codegen
 
@@ -253,20 +239,29 @@ We use oapi-codegen to generate:
 
 To regenerate code after changing the OpenAPI specification:
 
+**Windows**
 ```powershell
 # For PowerShell
 .\scripts\generate.ps1
 ```
 
-This script:
+or
 
-Generates domain models in `internal/domain/models/models.gen.go`
+**Unix**
+```shell
+# For Unix
+./scripts/generate.sh
+```
 
-Generates server interfaces `in internal/adapters/api/server.gen.go`
+The scripts do the following:
+
+1. Generates domain models in `internal/domain/models/models.gen.go`
+
+2. Generates server interfaces `in internal/adapters/api/server.gen.go`
 
 ## Docker Support
 
-The application includes Docker support for consistent deployment:
+The project includes Docker support.
 
 ### Docker Setup
 
@@ -296,7 +291,7 @@ For production deployment:
 
 ## Testing the API
 
-Once the API is running (using `make run`), you can test the endpoints using curl or PowerShell.
+Once the API is running you can test the endpoints using curl or PowerShell.
 
 ### Curl Commands
 
@@ -351,12 +346,10 @@ Invoke-RestMethod -Method PUT -Uri "http://localhost:8080/users/USER_ID" -Conten
 4. Use the "Get a specific user" command with that ID
 5. Test other endpoints as needed
 
-## Future Enchancements (TODO)
-
-Planned improvements for the project:
+## TODO
 
 1. **Database Integration**: Replace in-memory repositories with actual database adapters
 2. **Authentication**: Implement the OAuth2 flow described in the API specification with middleware
-3. **Logging and Monitoring**: Add structured logging and metrics collection
-4. **CI/CD Pipeline**: Automate testing, building, and deployment (Github workflows)
-5. **Remaining Endpoints**: Complete implementation of all API endpoints defined in the specification
+3. **Logging and Monitoring**: Add structured logging and metrics collection (Otel + Prometheus + Grafana)
+4. **CI/CD Pipeline**: Automate testing, building, and deployment (Github workflows) with versioned releases
+5. **API**: Implement the rest of the service API defined in the Open API spec
